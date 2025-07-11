@@ -22,10 +22,12 @@ include = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-egui = { version = "0.31.1", default-features = false }
-egui_extras = { version = "0.31.1", default-features = false, features = [
-  "serde",
-] }
+# egui = { version = "0.31.1", default-features = false }
+egui = { path = "C:/Users/pfapo/code/foreign/egui/crates/egui" }
+# egui_extras = { version = "0.31.1", default-features = false, features = [
+#   "serde",
+# ] }
+egui_extras = { path = "C:/Users/pfapo/code/foreign/egui/crates/egui_extras", features = ["serde"]}
 indexmap = { version = "2.1.0", features = ["serde"] }
 natord = "1.0.9"
 once_cell = "1.7"
