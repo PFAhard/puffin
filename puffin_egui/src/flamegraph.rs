@@ -260,7 +260,7 @@ pub fn ui(
 
             ui.group(|ui| {
                 ui.strong("Visible Threads");
-                egui::ScrollArea::vertical().id_source("f").show(ui, |ui| {
+                egui::ScrollArea::vertical().id_salt("f").show(ui, |ui| {
                     for f in frames.threads.keys() {
                         let entry = options
                             .flamegraph_threads
@@ -723,6 +723,7 @@ fn paint_record(
             start_x + 4.0,
             top_y + 0.5 * (options.rect_height - info.text_height),
         );
+        #[allow(deprecated)]
         let pos = painter.round_pos_to_pixels(pos);
         const TEXT_COLOR: Color32 = Color32::BLACK;
         painter.text(
@@ -884,7 +885,7 @@ fn paint_scope_details(ui: &mut Ui, scope_id: ScopeId, data: &str, scope_details
 
             if !data.is_empty() {
                 ui.monospace("data");
-                ui.monospace(data.as_str());
+                ui.monospace(data);
                 ui.end_row();
             }
 
