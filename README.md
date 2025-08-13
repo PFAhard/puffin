@@ -17,6 +17,18 @@
 
 </div>
 
+## FORK CHANGES:
+
+Major changes:
+1. Major Bincode update: from 1.3 to 2.0 completely new API (should be compatible with old data, but no guarantees).
+2. Deprecated egui elements replaced with new ones.
+
+The rest is AI summary:
+- Added `bincode` serialization and deserialization support to several structs in `puffin`, including `Stream`, `StreamInfo`, `FrameMeta`, `ScopeId`, `ScopeDetails`, and `ThreadInfo`.
+- Refactored serialization logic in `PackedStreams` and `FrameData` to utilize `bincode`'s new encoding methods.
+- Updated tooltip implementation in `puffin_egui` to use the new `egui::Tooltip` API.
+- Improved the `ScopeDetails` struct with custom `bincode` decoding implementation.
+
 ## How to use
 
 ``` rust

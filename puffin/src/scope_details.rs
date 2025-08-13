@@ -89,6 +89,7 @@ impl ScopeType {
     feature = "serialization",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[derive(bincode::Encode)]
 /// Detailed information about a scope.
 pub struct ScopeDetails {
     /// Unique scope identifier.
@@ -109,6 +110,43 @@ pub struct ScopeDetails {
 
     /// The exact line number at which this scope is located.
     pub line_nr: u32,
+}
+
+impl<__Context> ::bincode::Decode<__Context> for ScopeDetails {
+    fn decode<__D: ::bincode::de::Decoder<Context = __Context>>(
+        decoder: &mut __D,
+    ) -> core::result::Result<Self, ::bincode::error::DecodeError> {
+        core::result::Result::Ok(Self {
+            scope_id: ::bincode::Decode::decode(decoder)?,
+            scope_name: ::bincode::Decode::decode(decoder)?,
+            function_name: ::bincode::Decode::decode(decoder)?,
+            file_path: ::bincode::Decode::decode(decoder)?,
+            line_nr: ::bincode::Decode::decode(decoder)?,
+        })
+    }
+}
+impl<'__de, __Context> ::bincode::BorrowDecode<'__de, __Context> for ScopeDetails {
+    fn borrow_decode<__D: ::bincode::de::BorrowDecoder<'__de, Context = __Context>>(
+        decoder: &mut __D,
+    ) -> core::result::Result<Self, ::bincode::error::DecodeError> {
+        core::result::Result::Ok(Self {
+            scope_id: ::bincode::BorrowDecode::<'_, __Context>::borrow_decode(decoder)?,
+            scope_name: {
+                let tmp: Option<String> =
+                    ::bincode::BorrowDecode::<'_, __Context>::borrow_decode(decoder)?;
+                tmp.map(Cow::from)
+            },
+            function_name: {
+                let tmp: String = ::bincode::BorrowDecode::<'_, __Context>::borrow_decode(decoder)?;
+                Cow::from(tmp)
+            },
+            file_path: {
+                let tmp: String = ::bincode::BorrowDecode::<'_, __Context>::borrow_decode(decoder)?;
+                Cow::from(tmp)
+            },
+            line_nr: ::bincode::BorrowDecode::<'_, __Context>::borrow_decode(decoder)?,
+        })
+    }
 }
 
 impl ScopeDetails {

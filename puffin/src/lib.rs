@@ -163,6 +163,7 @@ impl Drop for ProfilerScope {
     feature = "serialization",
     derive(serde::Serialize, serde::Deserialize)
 )]
+#[derive(bincode::Encode, bincode::Decode)]
 pub struct ScopeId(pub NonZeroU32);
 
 impl ScopeId {

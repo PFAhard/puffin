@@ -161,6 +161,7 @@ impl ThreadProfiler {
 /// Used to identify one source of profiling data.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(bincode::Encode, bincode::Decode)]
 pub struct ThreadInfo {
     /// Useful for ordering threads.
     pub start_time_ns: Option<NanoSecond>,

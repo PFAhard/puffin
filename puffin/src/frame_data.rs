@@ -12,7 +12,7 @@ pub type ThreadStreams = BTreeMap<ThreadInfo, Arc<StreamInfo>>;
 
 /// Meta-information about a frame.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, bincode::Encode, bincode::Decode)]
 pub struct FrameMeta {
     /// What frame this is (counting from 0 at application startup).
     pub frame_index: FrameIndex,
@@ -246,10 +246,7 @@ impl PackedStreams {
     }
 
     pub fn pack(streams: &ThreadStreams) -> Self {
-        use bincode::Options as _;
-
-        let serialized = bincode::options()
-            .serialize(streams)
+        let serialized = bincode::encode_to_vec(streams, bincode::config::standard())
             .expect("bincode failed to encode");
 
         cfg_if::cfg_if! {
@@ -283,13 +280,12 @@ impl PackedStreams {
         crate::profile_function!();
 
         use anyhow::Context as _;
-        use bincode::Options as _;
 
         fn deserialize(bytes: &[u8]) -> anyhow::Result<ThreadStreams> {
             crate::profile_scope!("bincode deserialize");
-            bincode::options()
-                .deserialize(bytes)
+            bincode::borrow_decode_from_slice(bytes, bincode::config::standard())
                 .context("bincode deserialize")
+                .map(|(v, _)| v)
         }
 
         match self.compression_kind {
@@ -571,10 +567,9 @@ impl FrameData {
         scope_collection: Option<&crate::ScopeCollection>,
         write: &mut impl std::io::Write,
     ) -> anyhow::Result<()> {
-        use bincode::Options as _;
         use byteorder::{LE, WriteBytesExt as _};
 
-        let meta_serialized = bincode::options().serialize(&self.meta)?;
+        let meta_serialized = bincode::encode_to_vec(&self.meta, bincode::config::standard())?;
 
         write.write_all(b"PFD4")?;
         write.write_all(&(meta_serialized.len() as u32).to_le_bytes())?;
@@ -594,7 +589,8 @@ impl FrameData {
             self.scope_delta.clone()
         };
 
-        let serialized_scopes = bincode::options().serialize(&to_serialize_scopes)?;
+        let serialized_scopes =
+            bincode::encode_to_vec(&to_serialize_scopes, bincode::config::standard())?;
         write.write_u32::<LE>(serialized_scopes.len() as u32)?;
         write.write_all(&serialized_scopes)?;
         Ok(())
@@ -607,7 +603,6 @@ impl FrameData {
     #[cfg(feature = "serialization")]
     pub fn read_next(read: &mut impl std::io::Read) -> anyhow::Result<Option<Self>> {
         use anyhow::Context as _;
-        use bincode::Options as _;
         use byteorder::{LE, ReadBytesExt};
 
         let mut header = [0_u8; 4];
@@ -619,7 +614,7 @@ impl FrameData {
             }
         }
 
-        #[derive(Clone, serde::Deserialize, serde::Serialize)]
+        #[derive(Clone, serde::Deserialize, serde::Serialize, bincode::Encode, bincode::Decode)]
         pub struct LegacyFrameData {
             pub frame_index: FrameIndex,
             pub thread_streams: ThreadStreams,
@@ -676,9 +671,10 @@ impl FrameData {
 
                     let serialized = decode_zstd(&compressed[..])?;
 
-                    let legacy: LegacyFrameData = bincode::options()
-                        .deserialize(&serialized)
-                        .context("bincode deserialize")?;
+                    let legacy: LegacyFrameData =
+                        bincode::borrow_decode_from_slice(&serialized, bincode::config::standard())
+                            .context("bincode deserialize")
+                            .map(|(v, _)| v)?;
                     Ok(Some(legacy.into_frame_data()))
                 }
                 #[cfg(not(feature = "zstd"))]
@@ -693,9 +689,10 @@ impl FrameData {
                 let mut meta = vec![0_u8; meta_length];
                 read.read_exact(&mut meta)?;
 
-                let meta: FrameMeta = bincode::options()
-                    .deserialize(&meta)
-                    .context("bincode deserialize")?;
+                let meta: FrameMeta =
+                    bincode::borrow_decode_from_slice(&meta, bincode::config::standard())
+                        .context("bincode deserialize")
+                        .map(|(v, _)| v)?;
 
                 let mut streams_compressed_length = [0_u8; 4];
                 read.read_exact(&mut streams_compressed_length)?;
@@ -723,9 +720,10 @@ impl FrameData {
                 let mut meta = vec![0_u8; meta_length];
                 read.read_exact(&mut meta)?;
 
-                let meta: FrameMeta = bincode::options()
-                    .deserialize(&meta)
-                    .context("bincode deserialize")?;
+                let meta: FrameMeta =
+                    bincode::borrow_decode_from_slice(&meta, bincode::config::standard())
+                        .context("bincode deserialize")
+                        .map(|(v, _)| v)?;
 
                 let mut streams_compressed_length = [0_u8; 4];
                 read.read_exact(&mut streams_compressed_length)?;
@@ -752,9 +750,9 @@ impl FrameData {
                 let meta = {
                     let mut meta = vec![0_u8; meta_length];
                     read.read_exact(&mut meta)?;
-                    bincode::options()
-                        .deserialize(&meta)
-                        .context("bincode deserialize")?
+                    bincode::borrow_decode_from_slice(&meta, bincode::config::standard())
+                        .context("bincode deserialize")
+                        .map(|(v, _)| v)?
                 };
 
                 let streams_compressed_length = read.read_u32::<LE>()? as usize;
@@ -769,9 +767,12 @@ impl FrameData {
                 let deserialized_scopes: Vec<crate::ScopeDetails> = {
                     let mut serialized_scopes = vec![0; serialized_scope_len as usize];
                     read.read_exact(&mut serialized_scopes)?;
-                    bincode::options()
-                        .deserialize_from(serialized_scopes.as_slice())
-                        .context("Can not deserialize scope details")?
+                    bincode::borrow_decode_from_slice(
+                        serialized_scopes.as_slice(),
+                        bincode::config::standard(),
+                    )
+                    .context("Can not deserialize scope details")
+                    .map(|(v, _)| v)?
                 };
 
                 let new_scopes: Vec<_> = deserialized_scopes
@@ -795,10 +796,10 @@ impl FrameData {
             let mut bytes = vec![0_u8; u32::from_le_bytes(header) as usize];
             read.read_exact(&mut bytes)?;
 
-            use bincode::Options as _;
-            let legacy: LegacyFrameData = bincode::options()
-                .deserialize(&bytes)
-                .context("bincode deserialize")?;
+            let legacy: LegacyFrameData =
+                bincode::borrow_decode_from_slice(&bytes, bincode::config::standard())
+                    .context("bincode deserialize")
+                    .map(|(v, _)| v)?;
             Ok(Some(legacy.into_frame_data()))
         }
     }
