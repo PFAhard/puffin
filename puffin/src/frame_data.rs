@@ -12,7 +12,8 @@ pub type ThreadStreams = BTreeMap<ThreadInfo, Arc<StreamInfo>>;
 
 /// Meta-information about a frame.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, Copy, Debug, bincode::Encode, bincode::Decode)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "packing", derive(bincode::Encode, bincode::Decode))]
 pub struct FrameMeta {
     /// What frame this is (counting from 0 at application startup).
     pub frame_index: FrameIndex,

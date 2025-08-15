@@ -89,7 +89,7 @@ impl ScopeType {
     feature = "serialization",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[derive(bincode::Encode)]
+#[cfg_attr(feature = "packing", derive(bincode::Encode))]
 /// Detailed information about a scope.
 pub struct ScopeDetails {
     /// Unique scope identifier.
@@ -112,6 +112,7 @@ pub struct ScopeDetails {
     pub line_nr: u32,
 }
 
+#[cfg(feature = "packing")]
 impl<__Context> ::bincode::Decode<__Context> for ScopeDetails {
     fn decode<__D: ::bincode::de::Decoder<Context = __Context>>(
         decoder: &mut __D,
@@ -125,6 +126,7 @@ impl<__Context> ::bincode::Decode<__Context> for ScopeDetails {
         })
     }
 }
+#[cfg(feature = "packing")]
 impl<'__de, __Context> ::bincode::BorrowDecode<'__de, __Context> for ScopeDetails {
     fn borrow_decode<__D: ::bincode::de::BorrowDecoder<'__de, Context = __Context>>(
         decoder: &mut __D,
